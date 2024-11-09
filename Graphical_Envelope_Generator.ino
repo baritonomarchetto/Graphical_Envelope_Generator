@@ -7,7 +7,7 @@
 *
  * Known bugs: if the first EG is not drawn, the others are locked
  *
- * by barito (last update october 2024)
+ * by barito (last update november 2024)
  */
 
 #include <Adafruit_GFX.h>           // graphic library
@@ -67,7 +67,7 @@ XPT2046_Touchscreen ts(TOUCH_CS);
 mcp4728 dac = mcp4728(0); // initiate mcp4728 object, Device ID = 0 (default)
 
 // envelope draw profiles varibles
-const byte MAX_POINTS = 160;  // maximun Y data EG_form lenght for storage
+const byte MAX_POINTS = 240;  // maximun Y data EG_form lenght for storage
 int pointIndex = -1;  // index to track the running EG
 byte EG_Xform[OUT_NUM][MAX_POINTS];//initializing the EG_Xform array bugs the output ...
 
@@ -95,7 +95,7 @@ bool newDrawing[OUT_NUM] = {1, 1, 1, 1};  // new drawing flag
 const int relDrawY = 120;
 int relPosY = map(relDrawY, 0, 320, 4095, 0);
 int relIndex[OUT_NUM];
-byte resIndex = 26;//data acquisition space interval.
+byte resIndex = 13;//data acquisition space interval.
 
 void setup() {
   pinMode(LDAC, OUTPUT);
@@ -249,9 +249,9 @@ void Switches(){
             }
           }
           //new channel ...
-          potEnable[chNum][0] = false;//pots for "going" channel are disabled
-          potEnable[chNum][1] = false;
-          potEnable[chNum][2] = false;
+          potEnable[a][0] = false;//disable all pots for all channels
+          potEnable[a][1] = false;
+          potEnable[a][2] = false;
           chNum = a;//now, change channel
           EG_RECALL(a); //recall the envelope
         }
