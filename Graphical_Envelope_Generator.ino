@@ -87,6 +87,7 @@ byte EG_count[OUT_NUM] = {0, 0, 0, 0};
 unsigned long EG_runTime[OUT_NUM];
 int del_time[OUT_NUM][POT_NUM]; //delay execution time between points
 int res[OUT_NUM][POT_NUM]; //execution resolution (determines how many points of the curve are missed)
+int maxV[OUT_NUM];
 
 //Flags
 bool isDrawing[OUT_NUM] = {0, 0, 0, 0};   // drawing flag
@@ -176,7 +177,7 @@ void TouchDraw(){
       firstX[chNum] = p.x;//new drawing start
     }
     if(pointIndex < MAX_POINTS){//check for left space in the array
-      if(p.x < firstX[chNum] - (pointIndex+1)*resIndex){//if the point follows the one before (X AXIS IS INVERTED!!)
+      if(p.x < firstX[chNum] - (pointIndex+1)*resIndex){//if the point follows the one before (X AXIS IS INVERTED, 0 MAX, 4095 min)
         pointIndex++;
         // Map touch coordinates on screen dimension (320x240)
         TFT_y[chNum] = y;
@@ -184,7 +185,6 @@ void TouchDraw(){
         //tft.drawFastVLine(TFT_y[chNum], 0, TFT_x[chNum], CH_COLOR[chNum]); //x0, y0, lenght, color
         tft->fillCircle(TFT_x[chNum], TFT_y[chNum], 2, CH_COLOR[chNum]);//EG dots
         EG_Y[chNum][pointIndex] = TFT_y[chNum];  // save the Y value in the EG_ array        
-        MAXindex[chNum] = pointIndex;
         
         //set release indexes
         if (p.x < relPosX + 80 && relIndex[chNum] == -1){
@@ -192,13 +192,14 @@ void TouchDraw(){
           tft->fillCircle(TFT_x[chNum], EG_Y[chNum][relIndex[chNum]], 10, VIOLET);//draw release dot
         }
         EG_Stored[chNum] = true;  // vaweform progress recorded
-        dac.analogWrite(chNum, (4095 - (TFT_y[chNum]<<4) - offsetY));
+        dac.analogWrite(chNum, (4095 - (TFT_y[chNum]<<4) - offsetY)); //AXIS ARE INVERTED IN VALUES (0 MAX, 4095 min)
       }
     }
   }
   else { //no touch, draw ended
     if (isDrawing[chNum]){ //no touch, draw ended
       isDrawing[chNum] = false;
+      MAXindex[chNum] = pointIndex;
       isTouched = false;
       TFT_DRAW_LINES();
     }
@@ -241,9 +242,16 @@ void EG_Flush(int ch_fl, int i_del, int i_res){
       EG_count[ch_fl] = MAXindex[ch_fl];
     }
     iDAC[ch_fl] = (EG_Y[ch_fl][EG_count[ch_fl]]<<4) + offsetY - (potLockVal[ch_fl][0]<<3); //POT 1
-    if (iDAC[ch_fl] <0){iDAC[ch_fl] = 0;}
+    if (iDAC[ch_fl] <0){
+      iDAC[ch_fl] = 0;
+    }
     //else if(iDAC[ch_fl] > 4095){iDAC[ch_fl] = 4095;}//not possible
-    dac.analogWrite(ch_fl, 4095 - iDAC[ch_fl]);
+    if(iDAC[ch_fl] >= maxV[ch_fl]){ //INVERTED VOLTAGE VALUES. this avoids too high voltages when shifting to release phase
+      dac.analogWrite(ch_fl, 4095 - iDAC[ch_fl]);
+    }
+    else{
+      dac.analogWrite(ch_fl, 4095 - maxV[ch_fl]);
+    }
   }
 }
 
@@ -285,9 +293,11 @@ void GatesChange(){
       gateState[a] = !gateState[a];
       if (gateState[a] == HIGH){//new incoming trig!
         EG_count[a] = 0;
+        maxV[a] = 0; //no limiting voltage
       }
       else {//gate closes
         EG_count[a] = relIndex[a];//RELEASE PHASE START
+        maxV[a] = iDAC[a]; //voltage limit for release
       }
     }
   }
