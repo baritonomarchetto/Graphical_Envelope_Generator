@@ -4,21 +4,17 @@
  * Arduino nano 328p
  * ST7735/89 SPI display with touchscreen;
  * MCP4728 I2C 12-bit DAC
-*
- * Known bugs: if the first EG is not drawn, the others are locked
  *
- * by barito (last update november 2024)
+ * by barito (last update dec 2024)
  */
 
+#include <TS_Display.h>             // Touch to display mapping functions lib (Ted Toal)
 #include <Adafruit_GFX.h>           // graphic library
 #include <Adafruit_ST7789.h>        // Hardware-specific library for ST7789
-#include <XPT2046_Touchscreen.h>    // XPT2046 touch library (Paul Stoffregen)
+#include <XPT2046_Touchscreen_TT.h> // XPT2046 touch library (Paul Stoffregen & Ted Toal)
 #include <SPI.h>                    // SPI communication library
 #include <Wire.h>                   // I2C communication library
 #include <mcp4728.h>                // DAC MCP4728 library (Benoit Shillings https://github.com/BenoitSchillings/mcp4728)
-
-const int OUT_NUM = 4;
-const int POT_NUM = 3;
 
 //RGB565 format, inverted
 #define BLACK 0xFFFF
@@ -29,23 +25,26 @@ const int POT_NUM = 3;
 #define YELLOW 0x18B7
 #define RED 0x16BE
 
-int CH_COLOR[OUT_NUM] = {GREEN, YELLOW, BLUE, RED};
-
 // Display pins
-const int TFT_CS = 10;
-const int TFT_DC = 9;
-const int TFT_RST =  8;   // to Vcc if not used
-//#define TFT_MOSI 11 //hardware SPI, no need to define
-//#define TFT_MISO 12
-//#define TFT_CLK  13
+#define TFT_CS_PIN 10
+#define TFT_DC_PIN 9
+#define TFT_RST_PIN  8  // to Vcc if not used
+//#define TFT_MOSI_PIN 11 //hardware SPI, no need to define
+//#define TFT_MISO_PIN 12
+//#define TFT_CLK_PIN  13
 
 // Touchscreen XPT2046 pins
-const int TOUCH_CS = 7;
+#define TOUCH_CS_PIN 7
 
 // DAC MCP4728 pins
-const int LDAC = 2;  // DAC latch pin
+#define LDAC_PIN 2 // DAC latch pin
 //#define SDA A4
 //#define SCL A5
+
+const int OUT_NUM = 4;
+const int POT_NUM = 3;
+
+int CH_COLOR[OUT_NUM] = {GREEN, YELLOW, BLUE, RED};
 
 const int GATE_PIN[OUT_NUM] = {5, 6, A1, A0};
 bool gateState[OUT_NUM];
@@ -61,25 +60,28 @@ int potVal[OUT_NUM][POT_NUM];
 int potLockVal[OUT_NUM][POT_NUM]; //pot hold value
 bool potEnable[OUT_NUM][POT_NUM]; //pot status (enabled/disabled)
 
-// Display and touchscreen definitions
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
-XPT2046_Touchscreen ts(TOUCH_CS);
+// Display and touchscreen objects
+Adafruit_ST7789* tft; // Pointer to display object.
+XPT2046_Touchscreen* ts; // Pointer to touchscreen object.
+TS_Display* ts_display;// Pointer to touchscreen-display object.
+
+//DAC object
 mcp4728 dac = mcp4728(0); // initiate mcp4728 object, Device ID = 0 (default)
 
 // envelope draw profiles varibles
-const byte MAX_POINTS = 240;  // maximun Y data EG_form lenght for storage
+const int MAX_POINTS = 240;  // maximun data EG_form lenght for storage
 int pointIndex = -1;  // index to track the running EG
-byte EG_Xform[OUT_NUM][MAX_POINTS];//initializing the EG_Xform array bugs the output ...
+byte EG_Y[OUT_NUM][MAX_POINTS];//initializing the EG_Yform array bugs the output ...
 
-byte MAXindex[OUT_NUM]; // actual latest value stored index
-int firstY[OUT_NUM]; //first point Y position
+int MAXindex[OUT_NUM]; // actual latest value stored index
+int firstX[OUT_NUM]; //first point X position
 
 int TFT_y[OUT_NUM];
 int TFT_x[OUT_NUM];
 byte chNum = 0; //EG channel in use. We start from "A" channel
 
 // DAC out EG_form
-const int offsetX = 300;
+const int offsetY = 300;
 int iDAC[OUT_NUM];//instant DAC value
 byte EG_count[OUT_NUM] = {0, 0, 0, 0};
 unsigned long EG_runTime[OUT_NUM];
@@ -89,17 +91,35 @@ int res[OUT_NUM][POT_NUM]; //execution resolution (determines how many points of
 //Flags
 bool isDrawing[OUT_NUM] = {0, 0, 0, 0};   // drawing flag
 bool EG_Stored[OUT_NUM] = {0, 0, 0, 0};  // EG_form flag
-bool newDrawing[OUT_NUM] = {1, 1, 1, 1};  // new drawing flag
 
 //display visuals and sectors consts
-const int relDrawY = 120;
-int relPosY = map(relDrawY, 0, 320, 4095, 0);
+const int relDrawX = 200; //NON inverted X axis
+int relPosX = map(relDrawX, 0, 320, 4095, 0); //inverted X axis
 int relIndex[OUT_NUM];
 byte resIndex = 13;//data acquisition space interval.
 
 void setup() {
-  pinMode(LDAC, OUTPUT);
-  digitalWrite(LDAC, LOW);
+  // Display init
+  tft = new Adafruit_ST7789(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
+  tft->init(240, 320);   // Init ST7789 320x240
+  tft->setRotation(1);  // Screen orientation (0-3)
+  tft->fillScreen(BLACK);  // clean display
+  //tft->invertDisplay(true);
+  //tft->setSPISpeed(40000000);
+
+  // Touch screen init
+  ts = new XPT2046_Touchscreen(TOUCH_CS_PIN); // no interrupt
+  //ts = new XPT2046_Touchscreen(TOUCH_CS_PIN, TOUCH_IRQ_PIN); // interrupt enabled polling
+  ts->begin();
+  ts->setRotation(tft->getRotation());  // touchscreen orientation, same as TFT
+  ts->setThresholds(Z_THRESHOLD); // Change the pressure threshold
+
+  // Allocate and initialize the touchscreen-display object.
+  ts_display = new TS_Display();
+  ts_display->begin(ts, tft);
+
+  pinMode(LDAC_PIN, OUTPUT);
+  digitalWrite(LDAC_PIN, LOW);
 
   for (int a = 0; a < OUT_NUM; a++){
     pinMode(BTN_PIN[a], INPUT_PULLUP);
@@ -117,17 +137,8 @@ void setup() {
   potEnable[0][1] = true;//channel A pot2 ENABLED
   potEnable[0][2] = true;//channel A pot3 ENABLED
 
-  // Display and touchscreen init
-  tft.init(240, 320);   // Init ST7789 320x240
-  tft.setRotation(3);  // Screen orientation (0-3)
-  tft.fillScreen(BLACK);  // clean display
-  //tft.invertDisplay(true);
-  //tft.setSPISpeed(40000000);
   TFT_DRAW_LINES();
 
-  ts.begin();
-  ts.setRotation(2);  // touchscreen orientation (0-3)
-  
   dac.begin();  // initialize i2c interface
   // Inizializzazione del DAC
   dac.setPowerDown(0, 0, 0, 0); // set Power-Down ( 0 = Normal , 1-3 = shut down most channel circuit, no voltage out) (1 = 1K ohms to GND, 2 = 100K ohms to GND, 3 = 500K ohms to GND)
@@ -148,48 +159,49 @@ void loop() {
 }
 
 void TouchDraw(){
-  if (ts.touched()){ //check if touchscreen has been touched...
-    TS_Point p = ts.getPoint();  // Ottieni le coordinate del tocco
+  boolean isTouched = ts->touched();
+  if (isTouched){ //touchscreen has been touched...
+    TS_Point p = ts->getPoint();  // get touch coordinates
+    int16_t x, y;
+    ts_display->mapTStoDisplay(p.x, p.y, &x, &y); // convert touch coordinates to display coordinates
     // new drawing start, init
-    if(newDrawing[chNum] && p.y < relPosY){//this makes not possible to draw a release-only envelope
-      newDrawing[chNum] = false;  // drawing has started
-      tft.fillScreen(BLACK);  // clean display
+    if(isDrawing[chNum] == false && p.x > relPosX){//this makes not possible to draw a release-only envelope
+      isDrawing[chNum] = true;  // drawing has started
+      tft->fillScreen(BLACK);  // clean display
       TFT_DRAW_LINES();
       pointIndex = -1;  //point index init
-      MAXindex[chNum] = 0; //max value init
-      relIndex[chNum] = 0; //release index init
+      MAXindex[chNum] = -1; //max value init
+      relIndex[chNum] = -1; //release index init
       EG_Stored[chNum] = false;  // memory state reset
-      firstY[chNum] = p.y;//new drawing start
+      firstX[chNum] = p.x;//new drawing start
     }
     if(pointIndex < MAX_POINTS){//check for left space in the array
-      if(p.y > firstY[chNum] + (pointIndex+1)*resIndex){//if the point follows the one before
+      if(p.x < firstX[chNum] - (pointIndex+1)*resIndex){//if the point follows the one before (X AXIS IS INVERTED!!)
         pointIndex++;
         // Map touch coordinates on screen dimension (320x240)
-        TFT_y[chNum] = map(p.y, 4095, 0, 0, 320); //map(value, fromLow, fromHigh, toLow, toHigh)
-        TFT_x[chNum] = p.x >> 4;//tracks the pen better than map.....
-        //Overflow(TFT_y[chNum], 0, 320);
-        //Overflow(TFT_x[chNum], 0, 240);
+        TFT_y[chNum] = y;
+        TFT_x[chNum] = x;
         //tft.drawFastVLine(TFT_y[chNum], 0, TFT_x[chNum], CH_COLOR[chNum]); //x0, y0, lenght, color
-        tft.fillCircle(TFT_y[chNum], TFT_x[chNum], 2, CH_COLOR[chNum]);//EG dots
-        EG_Xform[chNum][pointIndex] = TFT_x[chNum];  // save the X value in the EG_ array        
+        tft->fillCircle(TFT_x[chNum], TFT_y[chNum], 2, CH_COLOR[chNum]);//EG dots
+        EG_Y[chNum][pointIndex] = TFT_y[chNum];  // save the Y value in the EG_ array        
         MAXindex[chNum] = pointIndex;
         
         //set release indexes
-        if (p.y > relPosY - 13 && relIndex[chNum] == 0){
+        if (p.x < relPosX + 80 && relIndex[chNum] == -1){
           relIndex[chNum] = pointIndex;
-          tft.fillCircle(TFT_y[chNum], EG_Xform[chNum][relIndex[chNum]], 10, VIOLET);//draw release dot
+          tft->fillCircle(TFT_x[chNum], EG_Y[chNum][relIndex[chNum]], 10, VIOLET);//draw release dot
         }
         EG_Stored[chNum] = true;  // vaweform progress recorded
-        isDrawing[chNum] = true;
-        dac.analogWrite(chNum, (TFT_x[chNum]<<4) - offsetX);
+        dac.analogWrite(chNum, (4095 - (TFT_y[chNum]<<4) - offsetY));
       }
     }
   }
-  else if (isDrawing[chNum]){ //no touch, draw ended
-    isDrawing[chNum] = false;
-    newDrawing[chNum] = true;  // new draw flag reset
-    //firstY[chNum] = 0;
-    TFT_DRAW_LINES();
+  else { //no touch, draw ended
+    if (isDrawing[chNum]){ //no touch, draw ended
+      isDrawing[chNum] = false;
+      isTouched = false;
+      TFT_DRAW_LINES();
+    }
   }
 }
 
@@ -225,11 +237,13 @@ void EG_Flush(int ch_fl, int i_del, int i_res){
   if(millis() - EG_runTime[ch_fl] > i_del){
     EG_runTime[ch_fl] = millis();
     EG_count[ch_fl] = EG_count[ch_fl] + i_res;
-    Overflow (EG_count[ch_fl], 0, MAXindex[ch_fl]);
-    //iDAC = map (EG_form[e]<<4, Xmin, 4095, 0, 4095);
-    iDAC[ch_fl] = (EG_Xform[ch_fl][EG_count[ch_fl]]<<4) - offsetX - 1023 + (potLockVal[ch_fl][0]<<4); //POT 1
-    Overflow(iDAC[ch_fl], 0, 4095);
-    dac.analogWrite(ch_fl, iDAC[ch_fl]);
+    if(EG_count[ch_fl] > MAXindex[ch_fl]){
+      EG_count[ch_fl] = MAXindex[ch_fl];
+    }
+    iDAC[ch_fl] = (EG_Y[ch_fl][EG_count[ch_fl]]<<4) + offsetY - (potLockVal[ch_fl][0]<<3); //POT 1
+    if (iDAC[ch_fl] <0){iDAC[ch_fl] = 0;}
+    //else if(iDAC[ch_fl] > 4095){iDAC[ch_fl] = 4095;}//not possible
+    dac.analogWrite(ch_fl, 4095 - iDAC[ch_fl]);
   }
 }
 
@@ -282,7 +296,6 @@ void GatesChange(){
 void PotRead(){
   for(int a = 0; a < POT_NUM; a++){
     potVal[chNum][a] = analogRead(POT_PIN[a]);
-    //Overflow(potVal[chNum][a], 0, 1023);
     potVal[chNum][a] = potVal[chNum][a] >> 3; //rescale pots values from 0-1023 to 0-127
     if(potVal[chNum][a] == potLockVal[chNum][a]){
       potEnable[chNum][a] = true; //enable pot reading
@@ -290,13 +303,11 @@ void PotRead(){
     if(potEnable[chNum][a] == true){
       if(potVal[chNum][a] > 63){//this sets a time stretch
         del_time[chNum][a] = potVal[chNum][a] - 63;
-        //Overflow(del_time[chNum][a], 0, 63)
         res[chNum][a] = 1;
       }
       else{//this sets a resolution decrease
         del_time[chNum][a] = 0;
         res[chNum][a] = (63 - potVal[chNum][a])>>3;
-        //Overflow(res[chNum][a], 1, 15)
         if(res[chNum][a] <=0){
           res[chNum][a] = 1;
         }
@@ -307,37 +318,32 @@ void PotRead(){
 }
 
 void EG_RECALL(int c){
-  tft.fillScreen(BLACK);  // clean display
+  tft->fillScreen(BLACK);  // clean display
   float resScaled = map(resIndex, 0, 4095, 0, 320);
-  float firstScaled = map(firstY[c], 0, 4095, 0, 320);
+  float firstScaled = map(firstX[c], 0, 4095, 0, 320);
   if(EG_Stored[c] == true){
     for(int d = 0; d < MAXindex[c]; d++){  
       //tft.drawFastVLine(map(firstScaled + resScaled*d, 0, 320, 320, 0), 0, EG_Xform[c][d], CH_COLOR[c]); //x0, y0, lenght, color
-      tft.fillCircle(map(firstScaled + resScaled*d, 0, 320, 320, 0), EG_Xform[c][d], 2, CH_COLOR[c]);
+      tft->fillCircle(map(firstScaled - resScaled*d, 0, 320, 320, 0), EG_Y[c][d], 2, CH_COLOR[c]);
     }
     if(relIndex[c] > 0){//in case of an LFO we don't want the release circle to be drawn
-      tft.fillCircle(map(firstScaled + relIndex[c]*resScaled, 0, 320, 320, 0), EG_Xform[c][relIndex[c]], 10, VIOLET);
+      tft->fillCircle(map(firstScaled - relIndex[c]*resScaled, 0, 320, 320, 0)+8, EG_Y[c][relIndex[c]], 10, VIOLET);
     }
   }
   TFT_DRAW_LINES();
 }
 
-void Overflow (int data, int vMin, int vMax){
-  if (data > vMax){data = vMax;}
-  else if (data < vMin){data = vMin;}
-}
-
 void TFT_DRAW_LINES(){
-  tft.drawFastVLine(relDrawY, 23, 240, WHITE); //x0, y0, lenght, color
-  tft.drawFastHLine(0, 23, 320, WHITE); //x0, y0, lenght, color
+  tft->drawFastVLine(relDrawX, 0, 240, WHITE); //x0, y0, lenght, color
+  //tft->drawFastHLine(0, 23, 320, WHITE); //x0, y0, lenght, color
 }
 
 void COPY_ENV(int a_from, int b_to){
   for (int e = 0; e < MAX_POINTS; e++){
-    EG_Xform[b_to][e] = EG_Xform[a_from][e];
+    EG_Y[b_to][e] = EG_Y[a_from][e];
   }
   MAXindex[b_to] = MAXindex[a_from];
   relIndex[b_to] = relIndex[a_from];
-  firstY[b_to] = firstY[a_from];
+  firstX[b_to] = firstX[a_from];
   EG_Stored[b_to] = true;
 }
