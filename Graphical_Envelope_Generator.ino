@@ -71,13 +71,16 @@ mcp4728 dac = mcp4728(0); // initiate mcp4728 object, Device ID = 0 (default)
 // envelope draw profiles varibles
 const int MAX_POINTS = 240;  // maximun data EG_form lenght for storage
 int pointIndex = -1;  // index to track the running EG
-byte EG_Y[OUT_NUM][MAX_POINTS];//initializing the EG_Yform array bugs the output ...
+byte EG_Y[OUT_NUM][MAX_POINTS] = {{42, 42, 42, 42, 48, 50, 58, 63, 64, 68, 72, 75, 79, 85, 88, 90, 94, 96, 99, 102, 105, 109, 110, 114, 116, 120, 122, 126, 129, 133, 133, 137, 139, 142, 143, 147, 149, 149, 152, 154, 156, 158, 160, 162, 164, 164, 167, 169, 169, 171, 172, 174, 174, 176, 177, 177, 179, 179, 180, 180, 181, 183, 184, 185, 184, 185, 185, 187, 187, 188, 190, 190, 190, 191, 193, 193, 193, 194, 194, 195, 194, 194, 196, 196, 196, 197, 197, 197, 198, 197, 198, 198, 198, 198, 199, 198, 199, 199, 198, 198, 197, 197, 197, 197, 195, 195, 195, 195, 194, 194, 192, 192, 192, 190, 189, 188, 187, 187, 185, 184, 183, 182, 181, 180, 180, 178, 177, 175, 174, 172, 170, 169, 168, 166, 165, 162, 160, 158, 156, 154, 152, 151, 148, 147, 144, 142, 140, 137, 135, 133, 130, 128, 126, 125, 123, 120, 117, 116, 115, 114, 111, 108, 107, 106, 104, 101, 99, 97, 95, 92, 90, 88, 87, 83, 81, 79, 77, 75, 72, 70, 69, 66, 64, 60, 58, 56, 54, 49, 46, 45, 43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                  {42, 42, 42, 42, 48, 50, 58, 63, 64, 68, 72, 75, 79, 85, 88, 90, 94, 96, 99, 102, 105, 109, 110, 114, 116, 120, 122, 126, 129, 133, 133, 137, 139, 142, 143, 147, 149, 149, 152, 154, 156, 158, 160, 162, 164, 164, 167, 169, 169, 171, 172, 174, 174, 176, 177, 177, 179, 179, 180, 180, 181, 183, 184, 185, 184, 185, 185, 187, 187, 188, 190, 190, 190, 191, 193, 193, 193, 194, 194, 195, 194, 194, 196, 196, 196, 197, 197, 197, 198, 197, 198, 198, 198, 198, 199, 198, 199, 199, 198, 198, 197, 197, 197, 197, 195, 195, 195, 195, 194, 194, 192, 192, 192, 190, 189, 188, 187, 187, 185, 184, 183, 182, 181, 180, 180, 178, 177, 175, 174, 172, 170, 169, 168, 166, 165, 162, 160, 158, 156, 154, 152, 151, 148, 147, 144, 142, 140, 137, 135, 133, 130, 128, 126, 125, 123, 120, 117, 116, 115, 114, 111, 108, 107, 106, 104, 101, 99, 97, 95, 92, 90, 88, 87, 83, 81, 79, 77, 75, 72, 70, 69, 66, 64, 60, 58, 56, 54, 49, 46, 45, 43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                  {42, 42, 42, 42, 48, 50, 58, 63, 64, 68, 72, 75, 79, 85, 88, 90, 94, 96, 99, 102, 105, 109, 110, 114, 116, 120, 122, 126, 129, 133, 133, 137, 139, 142, 143, 147, 149, 149, 152, 154, 156, 158, 160, 162, 164, 164, 167, 169, 169, 171, 172, 174, 174, 176, 177, 177, 179, 179, 180, 180, 181, 183, 184, 185, 184, 185, 185, 187, 187, 188, 190, 190, 190, 191, 193, 193, 193, 194, 194, 195, 194, 194, 196, 196, 196, 197, 197, 197, 198, 197, 198, 198, 198, 198, 199, 198, 199, 199, 198, 198, 197, 197, 197, 197, 195, 195, 195, 195, 194, 194, 192, 192, 192, 190, 189, 188, 187, 187, 185, 184, 183, 182, 181, 180, 180, 178, 177, 175, 174, 172, 170, 169, 168, 166, 165, 162, 160, 158, 156, 154, 152, 151, 148, 147, 144, 142, 140, 137, 135, 133, 130, 128, 126, 125, 123, 120, 117, 116, 115, 114, 111, 108, 107, 106, 104, 101, 99, 97, 95, 92, 90, 88, 87, 83, 81, 79, 77, 75, 72, 70, 69, 66, 64, 60, 58, 56, 54, 49, 46, 45, 43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                  {42, 42, 42, 42, 48, 50, 58, 63, 64, 68, 72, 75, 79, 85, 88, 90, 94, 96, 99, 102, 105, 109, 110, 114, 116, 120, 122, 126, 129, 133, 133, 137, 139, 142, 143, 147, 149, 149, 152, 154, 156, 158, 160, 162, 164, 164, 167, 169, 169, 171, 172, 174, 174, 176, 177, 177, 179, 179, 180, 180, 181, 183, 184, 185, 184, 185, 185, 187, 187, 188, 190, 190, 190, 191, 193, 193, 193, 194, 194, 195, 194, 194, 196, 196, 196, 197, 197, 197, 198, 197, 198, 198, 198, 198, 199, 198, 199, 199, 198, 198, 197, 197, 197, 197, 195, 195, 195, 195, 194, 194, 192, 192, 192, 190, 189, 188, 187, 187, 185, 184, 183, 182, 181, 180, 180, 178, 177, 175, 174, 172, 170, 169, 168, 166, 165, 162, 160, 158, 156, 154, 152, 151, 148, 147, 144, 142, 140, 137, 135, 133, 130, 128, 126, 125, 123, 120, 117, 116, 115, 114, 111, 108, 107, 106, 104, 101, 99, 97, 95, 92, 90, 88, 87, 83, 81, 79, 77, 75, 72, 70, 69, 66, 64, 60, 58, 56, 54, 49, 46, 45, 43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+                                };
 
-int MAXindex[OUT_NUM]; // actual latest value stored index
-int firstX[OUT_NUM]; //first point X position
+int MAXindex[OUT_NUM] = {191, 191, 191, 191}; // actual latest value stored index
+int firstX[OUT_NUM] = {1024, 1024, 1024, 1024}; //first point X position
+int relIndex[OUT_NUM] = {112, 112, 112, 112};
 
-int TFT_y[OUT_NUM];
-int TFT_x[OUT_NUM];
 byte chNum = 0; //EG channel in use. We start from "A" channel
 
 // DAC out EG_form
@@ -87,22 +90,21 @@ byte EG_count[OUT_NUM] = {0, 0, 0, 0};
 unsigned long EG_runTime[OUT_NUM];
 int del_time[OUT_NUM][POT_NUM]; //delay execution time between points
 int res[OUT_NUM][POT_NUM]; //execution resolution (determines how many points of the curve are missed)
-int maxV[OUT_NUM];
+int pre_DAC[OUT_NUM];
 
 //Flags
 bool isDrawing[OUT_NUM] = {0, 0, 0, 0};   // drawing flag
 bool EG_Stored[OUT_NUM] = {0, 0, 0, 0};  // EG_form flag
 
 //display visuals and sectors consts
-const int relDrawX = 200; //NON inverted X axis
-int relPosX = map(relDrawX, 0, 320, 4095, 0); //inverted X axis
-int relIndex[OUT_NUM];
-byte resIndex = 13;//data acquisition space interval.
+const int relDrawX = 200;
+int relPosX = map(relDrawX, 0, 320, 0, 4095);
+int resIndex = 13;//touch data acquisition space interval.
 
 void setup() {
   // Display init
   tft = new Adafruit_ST7789(TFT_CS_PIN, TFT_DC_PIN, TFT_RST_PIN);
-  tft->init(240, 320);   // Init ST7789 320x240
+  tft->init(240, 320);   // standard init ST7789, portrait 240x320
   tft->setRotation(1);  // Screen orientation (0-3)
   tft->fillScreen(BLACK);  // clean display
   //tft->invertDisplay(true);
@@ -138,8 +140,6 @@ void setup() {
   potEnable[0][1] = true;//channel A pot2 ENABLED
   potEnable[0][2] = true;//channel A pot3 ENABLED
 
-  TFT_DRAW_LINES();
-
   dac.begin();  // initialize i2c interface
   // Inizializzazione del DAC
   dac.setPowerDown(0, 0, 0, 0); // set Power-Down ( 0 = Normal , 1-3 = shut down most channel circuit, no voltage out) (1 = 1K ohms to GND, 2 = 100K ohms to GND, 3 = 500K ohms to GND)
@@ -147,7 +147,13 @@ void setup() {
   //dac.setGain(0, 0, 0, 0); // set the gain of internal voltage reference ( 0 = gain x1, 1 = gain x2 )
   dac.analogWrite(0, 0, 0, 0); //set all outs to zero
 
-  //Load_EG_Par();
+  for (int a = 1; a < OUT_NUM; a++){
+    EG_Stored[a] = true;
+    EG_RECALL(a);
+  }
+  EG_Stored[0] = true;
+  EG_RECALL(0);
+  //TFT_DRAW_LINES();
   //Serial.begin(9600);
 }
 
@@ -165,8 +171,10 @@ void TouchDraw(){
     TS_Point p = ts->getPoint();  // get touch coordinates
     int16_t x, y;
     ts_display->mapTStoDisplay(p.x, p.y, &x, &y); // convert touch coordinates to display coordinates
+    p.x = 4095 - p.x; //rectify touch coordinates (both axis coordinates are inverted in landscape mode)
+    p.y = 4095 - p.y; //rectify touch coordinates (both axis coordinates are inverted in landscape mode)
     // new drawing start, init
-    if(isDrawing[chNum] == false && p.x > relPosX){//this makes not possible to draw a release-only envelope
+    if(isDrawing[chNum] == false && p.x < relPosX){//this makes not possible to draw a release-only envelope
       isDrawing[chNum] = true;  // drawing has started
       tft->fillScreen(BLACK);  // clean display
       TFT_DRAW_LINES();
@@ -177,22 +185,18 @@ void TouchDraw(){
       firstX[chNum] = p.x;//new drawing start
     }
     if(pointIndex < MAX_POINTS){//check for left space in the array
-      if(p.x < firstX[chNum] - (pointIndex+1)*resIndex){//if the point follows the one before (X AXIS IS INVERTED, 0 MAX, 4095 min)
+      if(p.x > firstX[chNum] + (pointIndex + 1) * resIndex){//if the point follows the one before
         pointIndex++;
-        // Map touch coordinates on screen dimension (320x240)
-        TFT_y[chNum] = y;
-        TFT_x[chNum] = x;
-        //tft.drawFastVLine(TFT_y[chNum], 0, TFT_x[chNum], CH_COLOR[chNum]); //x0, y0, lenght, color
-        tft->fillCircle(TFT_x[chNum], TFT_y[chNum], 2, CH_COLOR[chNum]);//EG dots
-        EG_Y[chNum][pointIndex] = TFT_y[chNum];  // save the Y value in the EG_ array        
+        tft->fillCircle(x, y, 2, CH_COLOR[chNum]);//EG dots
+        EG_Y[chNum][pointIndex] = 240 - y;  // save the (rectified) Y value in the EG_ array        
         
         //set release indexes
-        if (p.x < relPosX + 80 && relIndex[chNum] == -1){
+        if (p.x > relPosX - 80 && relIndex[chNum] == -1){
           relIndex[chNum] = pointIndex;
-          tft->fillCircle(TFT_x[chNum], EG_Y[chNum][relIndex[chNum]], 10, VIOLET);//draw release dot
+          tft->fillCircle(x, y, 10, VIOLET);//draw release dot
         }
         EG_Stored[chNum] = true;  // vaweform progress recorded
-        dac.analogWrite(chNum, (4095 - (TFT_y[chNum]<<4) - offsetY)); //AXIS ARE INVERTED IN VALUES (0 MAX, 4095 min)
+        dac.analogWrite(chNum, (EG_Y[chNum][pointIndex]<<4) - offsetY);
       }
     }
   }
@@ -241,17 +245,12 @@ void EG_Flush(int ch_fl, int i_del, int i_res){
     if(EG_count[ch_fl] > MAXindex[ch_fl]){
       EG_count[ch_fl] = MAXindex[ch_fl];
     }
-    iDAC[ch_fl] = (EG_Y[ch_fl][EG_count[ch_fl]]<<4) + offsetY - (potLockVal[ch_fl][0]<<3); //POT 1
+    iDAC[ch_fl] = (EG_Y[ch_fl][EG_count[ch_fl]]<<4) - offsetY + (potLockVal[ch_fl][0]<<3); //POT 1
     if (iDAC[ch_fl] <0){
       iDAC[ch_fl] = 0;
     }
     //else if(iDAC[ch_fl] > 4095){iDAC[ch_fl] = 4095;}//not possible
-    if(iDAC[ch_fl] >= maxV[ch_fl]){ //INVERTED VOLTAGE VALUES. this avoids too high voltages when shifting to release phase
-      dac.analogWrite(ch_fl, 4095 - iDAC[ch_fl]);
-    }
-    else{
-      dac.analogWrite(ch_fl, 4095 - maxV[ch_fl]);
-    }
+    dac.analogWrite(ch_fl, iDAC[ch_fl]);
   }
 }
 
@@ -291,13 +290,12 @@ void GatesChange(){
   for(int a = 0; a < OUT_NUM; a++){
     if (digitalRead(GATE_PIN[a]) != gateState[a]) { // GATE state change...
       gateState[a] = !gateState[a];
+      pre_DAC[a] = iDAC[a]; //we keep track of the voltage at gate state change for envelope smoothing routines
       if (gateState[a] == HIGH){//new incoming trig!
         EG_count[a] = 0;
-        maxV[a] = 0; //no limiting voltage
       }
       else {//gate closes
         EG_count[a] = relIndex[a];//RELEASE PHASE START
-        maxV[a] = iDAC[a]; //voltage limit for release
       }
     }
   }
@@ -330,14 +328,14 @@ void PotRead(){
 void EG_RECALL(int c){
   tft->fillScreen(BLACK);  // clean display
   float resScaled = map(resIndex, 0, 4095, 0, 320);
-  float firstScaled = map(firstX[c], 0, 4095, 0, 320);
+  float firstScaled = map(firstX[c], 0, 4095, 320, 0);//map touch index to screen index for drawing
   if(EG_Stored[c] == true){
     for(int d = 0; d < MAXindex[c]; d++){  
-      //tft.drawFastVLine(map(firstScaled + resScaled*d, 0, 320, 320, 0), 0, EG_Xform[c][d], CH_COLOR[c]); //x0, y0, lenght, color
-      tft->fillCircle(map(firstScaled - resScaled*d, 0, 320, 320, 0), EG_Y[c][d], 2, CH_COLOR[c]);
+      tft->fillCircle(map(firstScaled - resScaled*d, 0, 320, 320, 0), 240 - EG_Y[c][d], 2, CH_COLOR[c]);
+      //tft->fillCircle(firstScaled - resScaled*d, 240 - EG_Y[c][d], 2, CH_COLOR[c]);
     }
     if(relIndex[c] > 0){//in case of an LFO we don't want the release circle to be drawn
-      tft->fillCircle(map(firstScaled - relIndex[c]*resScaled, 0, 320, 320, 0)+8, EG_Y[c][relIndex[c]], 10, VIOLET);
+      tft->fillCircle(map(firstScaled - relIndex[c]*resScaled - 8, 0, 320, 320, 0), 240 - EG_Y[c][relIndex[c]], 10, VIOLET);
     }
   }
   TFT_DRAW_LINES();
