@@ -45,7 +45,7 @@ The code makes use of different libraries from Arduino community:
 All these can be sourced directly throug the IDE's library manager, with the exception of Benoit Schilling's MCP4728 library.
 
 # How to Use
-When we first turn the module on, we are welcomed by a black screen divided into two sectors by a vertical line. We are on channel A and we can draw our envelope for that channel.
+When we first turn the module on, we are welcomed by a pre-loaded envelope. The screen is divided into two sectors by a vertical line. We are on channel A and we can use the default envelope or draw a new one for that channel.
 
 **Envelope Shapes and Sectors**
 
