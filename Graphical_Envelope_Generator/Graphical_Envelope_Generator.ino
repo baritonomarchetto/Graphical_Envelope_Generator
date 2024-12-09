@@ -183,7 +183,7 @@ void TouchDraw(){
     if(pointIndex < MAX_POINTS){//check for left space in the array
       if(p.x > firstX[chNum] + (pointIndex + 1) * resIndex){//if the point follows the one before
         pointIndex++;
-        tft->fillCircle(x, y, 2, CH_COLOR[chNum]);//EG dots
+        tft->fillCircle(x, y, 1, CH_COLOR[chNum]);//EG dots
         EG_Y[chNum][pointIndex] = SCREEN_HEIGHT - y;  // save the (rectified) Y value in the EG_ array        
         
         //set release indexes
@@ -327,7 +327,7 @@ void EG_RECALL(int c){
   float firstScaled = map(firstX[c], 0, 4095, SCREEN_WIDTH, 0);//map touch index to screen index for drawing
   if(EG_Stored[c] == true){
     for(int d = 0; d < MAXindex[c]; d++){  
-      tft->fillCircle(map(firstScaled - /* resScaled* */d, 0, SCREEN_WIDTH, SCREEN_WIDTH, 0), SCREEN_HEIGHT - EG_Y[c][d], 2, CH_COLOR[c]);
+      tft->fillCircle(map(firstScaled - /* resScaled* */d, 0, SCREEN_WIDTH, SCREEN_WIDTH, 0), SCREEN_HEIGHT - EG_Y[c][d], 1, CH_COLOR[c]);
     }
     if(relIndex[c] > 0){//in case of an LFO we don't want the release circle to be drawn
       tft->fillCircle(map(firstScaled - relIndex[c]/* *resScaled */ - 8, 0, SCREEN_WIDTH, SCREEN_WIDTH, 0), SCREEN_HEIGHT - EG_Y[c][relIndex[c]], 10, VIOLET);
